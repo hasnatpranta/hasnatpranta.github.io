@@ -105,6 +105,7 @@ function latLonToVec3(lat, lon, r = R) {
   );
 }
 
+function initGlobe() {
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 const scene = new THREE.Scene();
@@ -311,6 +312,8 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+}
+if (canvas) initGlobe();
 
 /* ================================================================
    GALLERIES + LIGHTBOX
@@ -368,17 +371,17 @@ buildGallery('featured-gis', 'gis', featuredGis);
 buildGallery('gis-grid', 'gis', gisImages);
 buildGallery('event-grid', 'event', eventImages);
 buildGallery('design-grid', 'design', designImages);
-buildGallery('collage-grid', 'collages', collages);
 
-// Collection filters
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const f = btn.dataset.filter;
-    document.querySelectorAll('#collage-grid .g-item').forEach(item => {
-      item.classList.toggle('hidden', f !== 'all' && item.dataset.cat !== f);
-    });
+// Collection page: one gallery per collapsible group
+buildGallery('collage-world', 'collages', collages.filter(c => c[2] === 'world'));
+buildGallery('collage-bd', 'collages', collages.filter(c => c[2] === 'bd'));
+buildGallery('collage-theme', 'collages', collages.filter(c => c[2] === 'theme'));
+buildGallery('collage-denom', 'collages', collages.filter(c => c[2] === 'denom'));
+
+// Reveal gallery items when a collapsed group is opened
+document.querySelectorAll('details.collage-group').forEach(d => {
+  d.addEventListener('toggle', () => {
+    if (d.open) d.querySelectorAll('.g-item').forEach(el => el.classList.add('in'));
   });
 });
 
@@ -393,7 +396,7 @@ const io = new IntersectionObserver(entries => {
       io.unobserve(e.target);
     }
   });
-}, { threshold: 0.12 });
+}, { threshold: 0.05, rootMargin: '0px 0px 120px 0px' });
 document.querySelectorAll('.reveal, .g-item').forEach(el => io.observe(el));
 
 let countersRun = false;
