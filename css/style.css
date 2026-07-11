@@ -259,6 +259,11 @@ strong { font-weight: 600; color: var(--ink); }
   background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 46px;
 }
 .teaser-btn { margin-top: 26px; }
+.teaser-flip .teaser-text { order: 2; }
+.teaser-flip .teaser-visual { order: 1; }
+.teaser-text h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); margin-bottom: 6px; }
+.teaser-text .section-sub { margin-top: 10px; }
+.h2-small { font-size: clamp(1.5rem, 3vw, 2rem); }
 .teaser-visual { position: relative; display: block; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
 .teaser-visual img { width: 100%; aspect-ratio: 4/3; object-fit: cover; transition: transform .5s ease; }
 .teaser-visual:hover img { transform: scale(1.04); }
@@ -376,6 +381,8 @@ footer { text-align: center; padding: 46px 6vw 40px; border-top: 1px solid var(-
   .report-cards { gap: 14px; }
   .report-card { padding: 24px; }
   .collection-teaser { grid-template-columns: 1fr; padding: 26px; gap: 26px; }
+  .collection-teaser .teaser-text { order: 1; }
+  .collection-teaser .teaser-visual { order: 2; }
   .subpage-head { padding-top: 104px; }
   .collage-group summary { padding: 18px 18px; }
   .collage-group .gallery-grid { padding: 0 18px 18px; }
