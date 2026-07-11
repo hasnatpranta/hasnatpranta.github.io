@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kabirul Hasnat Pranta — Urban Planner · MEL Specialist · GIS Analyst</title>
+<meta name="description" content="Portfolio of Kabirul Hasnat Pranta — urban planner and MEL specialist working in WASH, climate change and migration. GIS mapping, data visualization, event map design and a world banknote collection.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌏</text></svg>">
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<nav id="navbar">
+  <a href="#top" class="nav-logo">K<span>H</span>P</a>
+  <button id="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  <ul id="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#experience">Experience</a></li>
+    <li><a href="#gis">GIS Work</a></li>
+    <li><a href="#eventmaps">Event Maps</a></li>
+    <li><a href="#design">Design</a></li>
+    <li><a href="#collection">Collection</a></li>
+    <li><a href="#contact" class="nav-cta">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header id="top" class="hero">
+  <canvas id="globe-canvas"></canvas>
+  <div id="globe-tooltip" role="tooltip"></div>
+
+  <div class="hero-content">
+    <p class="hero-kicker">Satkhira, Bangladesh</p>
+    <h1>Kabirul Hasnat<br><em>Pranta</em></h1>
+    <p class="hero-roles">Urban Planner &nbsp;·&nbsp; MEL Specialist &nbsp;·&nbsp; GIS Analyst</p>
+    <p class="hero-tagline">I map places, measure change, and turn field data into decisions —
+    for WASH, climate resilience and migration programmes across Bangladesh.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#gis">Explore my work</a>
+      <a class="btn btn-ghost" href="assets/files/Kabirul_Hasnat_Pranta_CV.pdf" download>Download CV</a>
+    </div>
+  </div>
+
+  <div class="globe-legend">
+    <button class="legend-btn active" data-layer="work"><span class="dot dot-teal"></span>Where I've worked</button>
+    <button class="legend-btn active" data-layer="notes"><span class="dot dot-gold"></span>Banknote collection · 31 countries</button>
+    <p class="globe-hint">Drag the globe · hover a point</p>
+  </div>
+
+  <a href="#about" class="scroll-cue" aria-label="Scroll down"><span></span></a>
+</header>
+
+<main>
+
+<!-- ============ ABOUT ============ -->
+<section id="about" class="section">
+  <div class="section-head reveal">
+    <p class="section-kicker">01 — About</p>
+    <h2>Planning with evidence,<br>from the ward level up</h2>
+  </div>
+  <div class="about-grid">
+    <div class="about-text reveal">
+      <p>I'm an urban and regional planner (B.URP, KUET) with <strong>6+ years across NGOs and consultancies</strong>,
+      currently coordinating Monitoring, Evaluation &amp; Learning for <strong>GO4IMPact</strong> — a WaterAid–Swisscontact
+      consortium programme funded by the Embassy of Switzerland — at Rupantar.</p>
+      <p>My work sits where field reality meets data: designing MEL frameworks and survey tools, running data collection
+      with ODK and KoboToolbox, analysing results in SPSS, and turning it all into maps, dashboards and reports that
+      stakeholders actually use — from union parishads to international donors.</p>
+      <p>Before this I worked as an urban planner on <strong>feasibility studies and GIS mapping projects</strong> for
+      Dhaka's city corporations, the Rural Electrification Board, Bangladesh Red Crescent Society and the Urban
+      Development Directorate — including drone surveys for the Bangladesh Coast Guard.</p>
+    </div>
+    <div class="about-stats reveal">
+      <div class="stat-card"><span class="stat-num" data-count="6">0</span><span class="stat-plus">+</span><p>years of professional experience</p></div>
+      <div class="stat-card"><span class="stat-num" data-count="15">0</span><span class="stat-plus">+</span><p>development &amp; infrastructure projects</p></div>
+      <div class="stat-card"><span class="stat-num" data-count="25">0</span><span class="stat-plus">+</span><p>five-star freelance map commissions</p></div>
+      <div class="stat-card"><span class="stat-num" data-count="145">0</span><span class="stat-plus"></span><p>banknotes catalogued from 31 countries</p></div>
+    </div>
+  </div>
+  <div class="skills-band reveal">
+    <div class="skill-group"><h4>Spatial</h4><p>ArcGIS · QGIS · ERDAS Imagine · Google Earth Engine · AutoCAD · Pix4D · Agisoft Metashape</p></div>
+    <div class="skill-group"><h4>Data &amp; MEL</h4><p>SPSS · MS Access · ODK · KoboToolbox · Mergin Maps · Logical frameworks · Indicator design</p></div>
+    <div class="skill-group"><h4>Design &amp; Reporting</h4><p>Adobe Photoshop · Illustrator · InDesign · Report writing · Data visualization</p></div>
+  </div>
+</section>
+
+<!-- ============ EXPERIENCE ============ -->
+<section id="experience" class="section section-alt">
+  <div class="section-head reveal">
+    <p class="section-kicker">02 — Experience</p>
+    <h2>Where I've worked</h2>
+  </div>
+  <div class="timeline">
+    <div class="timeline-item reveal">
+      <div class="timeline-date">Apr 2024 — Present</div>
+      <div class="timeline-body">
+        <h3>Coordinator, MEL — Rupantar</h3>
+        <p class="timeline-proj">GO4IMPact · WaterAid–Swisscontact consortium · Embassy of Switzerland</p>
+        <p>Designing and running the MEL system for a multi-partner WASH and climate-resilience programme:
+        performance indicators, data quality assurance, learning sessions and donor reporting.</p>
+      </div>
+    </div>
+    <div class="timeline-item reveal">
+      <div class="timeline-date">Aug 2022 — Mar 2024</div>
+      <div class="timeline-body">
+        <h3>Urban Planner — IMAGE Research &amp; Consultancy Ltd.</h3>
+        <p class="timeline-proj">DNCC · DSCC · REB · BDRCS · UDD · Bangladesh Coast Guard</p>
+        <p>GIS mapping of civil structures, feasibility studies for urban interchanges and underground power
+        distribution, comprehensive development plans for nine upazilas, drone surveys and traffic studies.</p>
+      </div>
+    </div>
+    <div class="timeline-item reveal">
+      <div class="timeline-date">Feb 2022 — Jul 2022</div>
+      <div class="timeline-body">
+        <h3>Project Coordinator — IMAGE Research &amp; Consultancy Ltd.</h3>
+        <p class="timeline-proj">DCNUP traffic study · Urban LEDS II open green space plan, Rajshahi</p>
+        <p>Coordinated project activities, resources and stakeholder communication across two urban projects.</p>
+      </div>
+    </div>
+    <div class="timeline-item reveal">
+      <div class="timeline-date">Jul 2019 — Jan 2022</div>
+      <div class="timeline-body">
+        <h3>Monitoring &amp; Evaluation Officer — CRC, Khulna</h3>
+        <p class="timeline-proj">Sanitation behaviour change in urban slums (JADE/JFGE) · SANDEE/ICIMOD research</p>
+        <p>Ran the M&amp;E plan, workshops, FGDs and surveys; cleaned and validated field data and reported progress
+        against the monitoring framework.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GIS ============ -->
+<section id="gis" class="section">
+  <div class="section-head reveal">
+    <p class="section-kicker">03 — GIS &amp; Spatial Analysis</p>
+    <h2>Maps that answer questions</h2>
+    <p class="section-sub">A selection of cartographic and analytical work — from programme activity mapping to
+    storm-surge vulnerability modelling.</p>
+  </div>
+
+  <div class="featured-project reveal">
+    <div class="featured-text">
+      <h3>Cyclone shelter access &amp; storm-surge vulnerability</h3>
+      <p class="featured-loc">Khontakata Union, Sarankhola Upazila, Bagerhat</p>
+      <p>A full spatial vulnerability study of a coastal union on the edge of the Sundarbans: terrain elevation
+      modelling, storm-surge inundation scenarios at 4&nbsp;m and 6&nbsp;m, physical and building vulnerability
+      indices (PVI/BVI), and cyclone shelter service-area analysis identifying served, unserved and overserved
+      communities.</p>
+      <p class="featured-tools">ArcGIS · elevation modelling · service area analysis · risk indexing</p>
+    </div>
+    <div class="featured-gallery" id="featured-gis"></div>
+  </div>
+
+  <div class="gallery-grid" id="gis-grid"></div>
+</section>
+
+<!-- ============ EVENT MAPS ============ -->
+<section id="eventmaps" class="section section-alt">
+  <div class="section-head reveal">
+    <p class="section-kicker">04 — Freelance Event Maps</p>
+    <h2>Cartography for a global clientele</h2>
+    <p class="section-sub">As a freelancer on Fiverr I completed <strong>25+ event map commissions — every one rated
+    five stars</strong> — turning venue sketches and site plans into clear, festival-ready maps for clients in the
+    United States and beyond.</p>
+  </div>
+  <div class="gallery-grid gallery-wide" id="event-grid"></div>
+  <p class="section-note reveal">Selected client work shown with identifying details as delivered. Freelance services returning soon.</p>
+</section>
+
+<!-- ============ DESIGN ============ -->
+<section id="design" class="section">
+  <div class="section-head reveal">
+    <p class="section-kicker">05 — Design for Development</p>
+    <h2>Communication that reaches the field</h2>
+    <p class="section-sub">Banners, posters and event material designed in Adobe Illustrator, Photoshop and InDesign
+    for programme events and campaigns.</p>
+  </div>
+  <div class="gallery-grid gallery-design" id="design-grid"></div>
+</section>
+
+<!-- ============ REPORTS ============ -->
+<section id="reports" class="section section-alt">
+  <div class="section-head reveal">
+    <p class="section-kicker">06 — Research &amp; Reporting</p>
+    <h2>From field data to findings</h2>
+  </div>
+  <div class="report-cards">
+    <div class="report-card reveal">
+      <div class="report-icon">📄</div>
+      <h3>PWVA Report — Satkhira Municipality, Ward 8</h3>
+      <p>Ward-level vulnerability assessment combining household data, spatial analysis and community consultation
+      under the GO4IMPact programme.</p>
+      <span class="report-tag">MEL · WASH · climate resilience</span>
+    </div>
+    <div class="report-card reveal">
+      <div class="report-icon">🚦</div>
+      <h3>Traffic Impact Assessment — Final Report</h3>
+      <p>Transport analysis supporting junction design and feasibility work in Dhaka, from survey design through
+      data analysis to recommendations.</p>
+      <span class="report-tag">Urban planning · transport</span>
+    </div>
+    <div class="report-card reveal">
+      <div class="report-icon">🎓</div>
+      <h3>Post-migration socio-economic lifestyles</h3>
+      <p>Undergraduate thesis exploring how displaced households in Sarankhola rebuild livelihoods after migration —
+      the same coastal geography as my vulnerability mapping work.</p>
+      <span class="report-tag">Research · migration</span>
+    </div>
+  </div>
+  <p class="section-note reveal">Full reports available on request.</p>
+</section>
+
+<!-- ============ COLLECTION ============ -->
+<section id="collection" class="section collection-section">
+  <div class="section-head reveal">
+    <p class="section-kicker">07 — Beyond Work</p>
+    <h2>The world, in banknotes</h2>
+    <p class="section-sub">A private numismatic collection of <strong>145 catalogued banknotes from 31 countries</strong> —
+    each one photographed, researched and arranged into curated collages. The same instinct that drives my mapping:
+    document the world carefully, then make it legible.</p>
+  </div>
+
+  <div class="collection-filters reveal">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="bd">Bangladesh</button>
+    <button class="filter-btn" data-filter="world">Around the world</button>
+    <button class="filter-btn" data-filter="theme">Themes</button>
+    <button class="filter-btn" data-filter="denom">Denominations</button>
+  </div>
+  <div class="gallery-grid gallery-collages" id="collage-grid"></div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section id="contact" class="section section-contact">
+  <div class="section-head reveal">
+    <p class="section-kicker">08 — Contact</p>
+    <h2>Let's work together</h2>
+    <p class="section-sub">Open to roles and consultancies in MEL, GIS and urban planning — WASH, climate change
+    and migration programmes especially.</p>
+  </div>
+  <div class="contact-cards reveal">
+    <a class="contact-card" href="mailto:hasnatpranta@gmail.com">
+      <span class="contact-label">Email</span>
+      <span class="contact-value">hasnatpranta@gmail.com</span>
+    </a>
+    <a class="contact-card" href="tel:+8801743644442">
+      <span class="contact-label">Phone / WhatsApp</span>
+      <span class="contact-value">+880 1743 644442</span>
+    </a>
+    <a class="contact-card" href="assets/files/Kabirul_Hasnat_Pranta_CV.pdf" download>
+      <span class="contact-label">Curriculum Vitae</span>
+      <span class="contact-value">Download PDF ↓</span>
+    </a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>© 2026 Kabirul Hasnat Pranta · Satkhira, Bangladesh</p>
+  <p class="footer-fine">Built as an interactive 3D portfolio — drag the globe up top.</p>
+</footer>
+
+<!-- ============ LIGHTBOX ============ -->
+<div id="lightbox" aria-hidden="true">
+  <button id="lb-close" aria-label="Close">×</button>
+  <button id="lb-prev" aria-label="Previous">‹</button>
+  <figure>
+    <img id="lb-img" src="" alt="">
+    <figcaption id="lb-caption"></figcaption>
+  </figure>
+  <button id="lb-next" aria-label="Next">›</button>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
