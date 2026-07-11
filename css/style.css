@@ -135,6 +135,7 @@ strong { font-weight: 600; color: var(--ink); }
 
 /* ============ SECTIONS ============ */
 .section { padding: 88px 6vw; max-width: 1300px; margin: 0 auto; }
+.section-teaser { padding-top: 38px; padding-bottom: 38px; }
 .section-alt { position: relative; }
 .section-alt::before {
   content: ""; position: absolute; inset: 0; background: var(--bg-alt);
@@ -369,6 +370,7 @@ footer { text-align: center; padding: 46px 6vw 40px; border-top: 1px solid var(-
   .globe-hint { display: none; }
   .scroll-cue { display: none; }
   .section { padding: 54px 6vw; }
+  .section-teaser { padding-top: 20px; padding-bottom: 20px; }
   .section-head { margin-bottom: 30px; }
   .gallery-grid, .gallery-wide, .gallery-design, .gallery-collages { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .featured-gallery { grid-template-columns: repeat(2, 1fr); }
