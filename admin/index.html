@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — Kabirul Hasnat Pranta</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🔐</text></svg>">
+</head>
+<body class="login-body">
+  <form id="login-form" class="login-card">
+    <p class="login-kicker">Portfolio Admin</p>
+    <h1>Sign in</h1>
+    <div class="form-field">
+      <label>Email</label>
+      <input type="email" id="email" required autocomplete="username">
+    </div>
+    <div class="form-field">
+      <label>Password</label>
+      <input type="password" id="password" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn btn-primary login-btn">Sign in</button>
+    <p class="login-error" id="login-error"></p>
+    <a href="../index.html" class="login-back">← Back to the portfolio</a>
+  </form>
+
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import { signIn, getSession, cmsEnabled } from './js/auth.js';
+
+    if (cmsEnabled) {
+      getSession().then(s => { if (s) window.location.href = 'dashboard.html'; });
+    } else {
+      document.getElementById('login-error').textContent =
+        'Supabase is not configured yet. Add your project URL and anon key to js/cms-config.js.';
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const errEl = document.getElementById('login-error');
+      errEl.textContent = '';
+      try {
+        await signIn(email, password);
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        errEl.textContent = err.message || 'Sign-in failed.';
+      }
+    });
+  </script>
+</body>
+</html>

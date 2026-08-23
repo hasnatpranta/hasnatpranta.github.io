@@ -1,9 +1,17 @@
 import * as THREE from 'three';
+import {
+  loadProfile, loadAboutContent, loadStats, loadSkillGroups, loadHeroPins,
+  loadExperience, loadGisItems, loadFeaturedProject, loadEventMapItems,
+  loadDesignItems, loadReports, loadCollectionGroups, loadCollectionItems,
+  loadSeoMeta, applySeoMeta
+} from './cms-content.js';
 
 /* ================================================================
-   DATA
+   FALLBACK DATA — used whenever the CMS has no data for a section
+   (not configured yet, empty table, or a network error). The site
+   must always render correctly even if Supabase is unreachable.
 ================================================================ */
-const workPins = [
+const defaultWorkPins = [
   { name: 'Satkhira', sub: 'GO4IMPact — MEL Coordinator (current)', lat: 22.72, lon: 89.07 },
   { name: 'Khulna', sub: 'CRC — M&E Officer · KUET', lat: 22.82, lon: 89.55 },
   { name: 'Dhaka', sub: 'Traffic & feasibility studies (DNCC, DSCC)', lat: 23.81, lon: 90.41 },
@@ -12,7 +20,7 @@ const workPins = [
   { name: 'Bagerhat (Sarankhola)', sub: 'Storm-surge vulnerability study', lat: 22.31, lon: 89.79 },
 ];
 
-const noteCountries = [
+const defaultNoteCountries = [
   ['Bangladesh', 81, 23.7, 90.4], ['India', 9, 21.0, 78.0], ['Pakistan', 8, 30.4, 69.4],
   ['Nepal', 6, 28.4, 84.1], ['China', 3, 35.0, 104.0], ['United States', 3, 39.8, -98.6],
   ['Mongolia', 3, 46.9, 103.8], ['Ukraine', 3, 48.4, 31.2], ['Trinidad and Tobago', 2, 10.7, -61.2],
@@ -26,12 +34,17 @@ const noteCountries = [
   ['Oman', 1, 21.5, 55.9],
 ];
 
-const gisImages = [
-  ['Assasuni', 'Programme activity coverage — Assasuni Upazila, Satkhira'],
-  ['Shyamnagar', 'Activity coverage on the edge of the Sundarbans — Shyamnagar'],
-  ['Municipality', 'Activity coverage — Satkhira Municipality'],
+const legacy = (folder, base) => ({
+  full: `assets/img/${folder}/${base}.jpg`,
+  thumb: `assets/img/${folder}/thumb/${base}.jpg`,
+});
+
+const defaultGisItems = [
+  { ...legacy('gis', 'Assasuni'), caption: 'Programme activity coverage — Assasuni Upazila, Satkhira' },
+  { ...legacy('gis', 'Shyamnagar'), caption: 'Activity coverage on the edge of the Sundarbans — Shyamnagar' },
+  { ...legacy('gis', 'Municipality'), caption: 'Activity coverage — Satkhira Municipality' },
 ];
-const featuredGis = [
+const defaultFeaturedGis = [
   ['Picture5', 'Physical Vulnerability Index (PVI) risk map'],
   ['Picture1', 'Khontakata Union — study area'],
   ['Picture2', 'Terrain elevation model'],
@@ -41,22 +54,22 @@ const featuredGis = [
   ['Picture7', 'Cyclone shelter service areas — served'],
   ['Picture8', 'Cyclone shelter service areas — unserved'],
   ['Picture9', 'Cyclone shelter service areas — overserved'],
-];
-const eventImages = [
+].map(([base, caption]) => ({ ...legacy('gis', base), caption }));
+const defaultEventItems = [
   ['7fe45255-a83f-4f7c-90f2-ee856b70003a', 'Festival site map — Fiverr client, USA'],
   ['a4efd411-8028-4287-88ab-ac80ba167df6', 'Event map commission — Fiverr'],
   ['ac50b61a-58cb-4323-8b1e-94251ef39891', 'Event map commission — Fiverr'],
   ['ac88045b-5831-45a2-a3d1-4156ba134d07', 'Event map commission — Fiverr'],
   ['e6a57742-9803-4331-9369-68d018e89a75', 'Event map commission — Fiverr'],
-];
-const designImages = [
+].map(([base, caption]) => ({ ...legacy('event', base), caption }));
+const defaultDesignItems = [
   ['Banner_DDLG', 'Programme roll-up banner — GO4IMPact / WaterAid–Swisscontact'],
   ['Banner_Photo_gallery', 'Photo gallery banner — programme event'],
   ['Poster', 'Campaign poster'],
   ['News', 'News / bulletin design'],
   ['Photobooth', 'Event photobooth frame'],
-];
-const collages = [
+].map(([base, caption]) => ({ ...legacy('design', base), caption }));
+const defaultCollages = [
   ['World_00_One_Note_Per_Country', 'One note per country — the whole collection', 'world'],
   ['Theme_03_Chronological_Timeline', 'A timeline of the world — arranged by year of issue', 'theme'],
   ['Theme_02_Faces_of_Currency', 'Faces of currency', 'theme'],
@@ -86,7 +99,7 @@ const collages = [
   ['Denomination_07_Hundreds', 'Hundreds of the world', 'denom'],
   ['Denomination_08_High_200_500_1000', 'High denominations — 200, 500 & 1000', 'denom'],
   ['Denomination_09_Odd_Fractional', 'Odd & fractional denominations', 'denom'],
-];
+].map(([base, caption, cat]) => ({ ...legacy('collages', base), caption, cat }));
 
 /* ================================================================
    GLOBE
@@ -105,7 +118,7 @@ function latLonToVec3(lat, lon, r = R) {
   );
 }
 
-function initGlobe() {
+function initGlobe(workPins, noteCountries) {
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 const scene = new THREE.Scene();
@@ -313,10 +326,9 @@ function animate() {
 }
 animate();
 }
-if (canvas) initGlobe();
 
 /* ================================================================
-   GALLERIES + LIGHTBOX
+   LIGHTBOX
 ================================================================ */
 const lbState = { items: [], index: 0 };
 const lightbox = document.getElementById('lightbox');
@@ -337,27 +349,43 @@ function closeLightbox() {
   lightbox.classList.remove('open');
   document.body.style.overflow = '';
 }
-document.getElementById('lb-close').onclick = closeLightbox;
-document.getElementById('lb-prev').onclick = () => { lbState.index = (lbState.index - 1 + lbState.items.length) % lbState.items.length; updateLightbox(); };
-document.getElementById('lb-next').onclick = () => { lbState.index = (lbState.index + 1) % lbState.items.length; updateLightbox(); };
-lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
-window.addEventListener('keydown', e => {
-  if (!lightbox.classList.contains('open')) return;
-  if (e.key === 'Escape') closeLightbox();
-  if (e.key === 'ArrowLeft') document.getElementById('lb-prev').onclick();
-  if (e.key === 'ArrowRight') document.getElementById('lb-next').onclick();
-});
+if (lightbox) {
+  document.getElementById('lb-close').onclick = closeLightbox;
+  document.getElementById('lb-prev').onclick = () => { lbState.index = (lbState.index - 1 + lbState.items.length) % lbState.items.length; updateLightbox(); };
+  document.getElementById('lb-next').onclick = () => { lbState.index = (lbState.index + 1) % lbState.items.length; updateLightbox(); };
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  window.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') document.getElementById('lb-prev').onclick();
+    if (e.key === 'ArrowRight') document.getElementById('lb-next').onclick();
+  });
+}
 
-function buildGallery(containerId, folder, list, extra = '') {
+/* ================================================================
+   GALLERIES  — items: [{ full, thumb, caption, cat? }]
+================================================================ */
+const revealObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('in');
+      if (e.target.classList.contains('about-stats')) runCounters();
+      revealObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.05, rootMargin: '0px 0px 120px 0px' });
+
+function buildGallery(containerId, items) {
   const el = document.getElementById(containerId);
-  if (!el) return;
-  const full = list.map(([base, cap]) => [`assets/img/${folder}/${base}.jpg`, cap]);
-  list.forEach(([base, cap, cat], i) => {
+  if (!el || !items || !items.length) return;
+  el.innerHTML = '';
+  const full = items.map(it => [it.full, it.caption]);
+  items.forEach((it, i) => {
     const fig = document.createElement('figure');
-    fig.className = 'g-item' + extra;
-    if (cat) fig.dataset.cat = cat;
-    fig.innerHTML = `<img src="assets/img/${folder}/thumb/${base}.jpg" alt="${cap}" loading="lazy">
-      <figcaption class="g-label">${cap}</figcaption>`;
+    fig.className = 'g-item';
+    if (it.cat) fig.dataset.cat = it.cat;
+    fig.innerHTML = `<img src="${it.thumb}" alt="${it.caption}" loading="lazy">
+      <figcaption class="g-label">${it.caption}</figcaption>`;
     fig.addEventListener('click', () => {
       const visible = [...el.querySelectorAll('.g-item:not(.hidden)')];
       const visibleFull = visible.map(v => full[[...el.children].indexOf(v)]);
@@ -365,39 +393,181 @@ function buildGallery(containerId, folder, list, extra = '') {
     });
     el.appendChild(fig);
   });
+  el.querySelectorAll('.g-item').forEach(item => revealObserver.observe(item));
 }
 
-buildGallery('featured-gis', 'gis', featuredGis);
-buildGallery('gis-grid', 'gis', gisImages);
-buildGallery('event-grid', 'event', eventImages);
-buildGallery('design-grid', 'design', designImages);
-
-// Collection page: one gallery per collapsible group
-buildGallery('collage-world', 'collages', collages.filter(c => c[2] === 'world'));
-buildGallery('collage-bd', 'collages', collages.filter(c => c[2] === 'bd'));
-buildGallery('collage-theme', 'collages', collages.filter(c => c[2] === 'theme'));
-buildGallery('collage-denom', 'collages', collages.filter(c => c[2] === 'denom'));
-
-// Reveal gallery items when a collapsed group is opened
-document.querySelectorAll('details.collage-group').forEach(d => {
-  d.addEventListener('toggle', () => {
-    if (d.open) d.querySelectorAll('.g-item').forEach(el => el.classList.add('in'));
+/* ================================================================
+   TEXT SECTIONS — only touch the DOM when CMS data is present;
+   otherwise the page's own static HTML (already correct) stands.
+================================================================ */
+function applyProfile(profile) {
+  if (!profile) return;
+  const setText = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.textContent = val; };
+  setText('.hero-kicker', profile.location);
+  setText('.hero-roles', profile.headline);
+  setText('.hero-tagline', profile.hero_tagline);
+  if (profile.cv_url) {
+    document.querySelectorAll('a[download]').forEach(a => { a.href = profile.cv_url; });
+  }
+  document.querySelectorAll('a[href^="mailto:"]').forEach(a => {
+    if (profile.email) { a.href = `mailto:${profile.email}`; const v = a.querySelector('.contact-value'); if (v) v.textContent = profile.email; }
   });
-});
+  document.querySelectorAll('a[href^="tel:"]').forEach(a => {
+    if (profile.phone) { a.href = `tel:${profile.phone}`; const v = a.querySelector('.contact-value'); if (v) v.textContent = profile.phone.replace(/^\+?(\d{3})(\d{4})(\d+)/, '+$1 $2 $3'); }
+  });
+}
+
+function applyAbout(about, stats, skillGroups) {
+  if (about) {
+    const paras = document.querySelectorAll('.about-text p');
+    [about.paragraph_1, about.paragraph_2, about.paragraph_3].forEach((html, i) => {
+      if (html && paras[i]) paras[i].innerHTML = html;
+    });
+  }
+  if (stats && stats.length) {
+    const wrap = document.querySelector('.about-stats');
+    if (wrap) {
+      wrap.innerHTML = stats.map(s => `
+        <div class="stat-card"><span class="stat-num" data-count="${s.value}">0</span><span class="stat-plus">${s.suffix || ''}</span><p>${s.label}</p></div>
+      `).join('');
+    }
+  }
+  if (skillGroups && skillGroups.length) {
+    const wrap = document.querySelector('.skills-band');
+    if (wrap) {
+      wrap.innerHTML = skillGroups.map(g => `
+        <div class="skill-group"><h4>${g.title}</h4><p>${g.items}</p></div>
+      `).join('');
+    }
+  }
+}
+
+function applyExperience(items) {
+  if (!items || !items.length) return;
+  const wrap = document.querySelector('.timeline');
+  if (!wrap) return;
+  wrap.innerHTML = items.map(x => `
+    <div class="timeline-item reveal">
+      <div class="timeline-date">${x.date_range}</div>
+      <div class="timeline-body">
+        <h3>${x.title}</h3>
+        ${x.org_line ? `<p class="timeline-proj">${x.org_line}</p>` : ''}
+        <p>${x.description || ''}</p>
+      </div>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+}
+
+function applyReports(items) {
+  if (!items || !items.length) return;
+  const wrap = document.querySelector('.report-cards');
+  if (!wrap) return;
+  wrap.innerHTML = items.map(r => `
+    <div class="report-card reveal">
+      <h3>${r.title}</h3>
+      <p>${r.description || ''}</p>
+      ${r.tag ? `<span class="report-tag">${r.tag}</span>` : ''}
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+}
+
+function applyFeaturedProject(fp) {
+  if (!fp) return;
+  const setText = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.textContent = val; };
+  setText('.featured-text h3', fp.title);
+  setText('.featured-loc', fp.location);
+  setText('.featured-text p:not(.featured-loc):not(.featured-tools)', fp.description);
+  setText('.featured-tools', fp.tools);
+}
 
 /* ================================================================
-   SCROLL FX
+   BOOT — fetch CMS content (with automatic fallback), THEN render.
+   Doing this before any reveal/observer wiring avoids animation races.
 ================================================================ */
-const io = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('in');
-      if (e.target.classList.contains('about-stats')) runCounters();
-      io.unobserve(e.target);
-    }
+const cmsToGalleryItem = row => ({ full: row.image_url, thumb: row.thumb_url || row.image_url, caption: row.caption || row.title });
+
+async function boot() {
+  const page = document.body.dataset.page || 'home';
+
+  const [
+    profile, about, stats, skillGroups, heroPins, experienceItems,
+    gisItems, featuredProject, eventItems, designItems, reportItems,
+    collectionGroups, collectionItems, seoMeta
+  ] = await Promise.all([
+    loadProfile(), loadAboutContent(), loadStats(), loadSkillGroups(), loadHeroPins(),
+    loadExperience(), loadGisItems(), loadFeaturedProject(), loadEventMapItems(),
+    loadDesignItems(), loadReports(), loadCollectionGroups(), loadCollectionItems(),
+    loadSeoMeta(page),
+  ]);
+
+  applySeoMeta(seoMeta);
+  applyProfile(profile);
+  applyAbout(about, stats, skillGroups);
+  applyExperience(experienceItems);
+  applyReports(reportItems);
+  applyFeaturedProject(featuredProject);
+
+  // ---- Globe ----
+  if (canvas) {
+    const workPins = heroPins && heroPins.some(p => p.layer === 'work')
+      ? heroPins.filter(p => p.layer === 'work').map(p => ({ name: p.name, sub: p.sub, lat: +p.lat, lon: +p.lon }))
+      : defaultWorkPins;
+    const noteCountries = heroPins && heroPins.some(p => p.layer === 'notes')
+      ? heroPins.filter(p => p.layer === 'notes').map(p => [p.name, p.count, +p.lat, +p.lon])
+      : defaultNoteCountries;
+    initGlobe(workPins, noteCountries);
+  }
+
+  // ---- Galleries ----
+  const gisFeatured = gisItems && gisItems.length ? gisItems.filter(i => i.featured).map(cmsToGalleryItem) : defaultFeaturedGis;
+  const gisRegular = gisItems && gisItems.length ? gisItems.filter(i => !i.featured).map(cmsToGalleryItem) : defaultGisItems;
+  buildGallery('featured-gis', gisFeatured);
+  buildGallery('gis-grid', gisRegular);
+
+  buildGallery('event-grid', eventItems && eventItems.length ? eventItems.map(cmsToGalleryItem) : defaultEventItems);
+  buildGallery('design-grid', designItems && designItems.length ? designItems.map(cmsToGalleryItem) : defaultDesignItems);
+
+  // Collection page: one gallery per collapsible group
+  if (document.getElementById('collage-world')) {
+    const bySlug = slug => {
+      if (collectionGroups && collectionItems) {
+        const grp = collectionGroups.find(g => g.slug === slug);
+        if (grp) return collectionItems.filter(i => i.group_id === grp.id).map(cmsToGalleryItem);
+      }
+      return defaultCollages.filter(c => c.cat === slug);
+    };
+    buildGallery('collage-world', bySlug('world'));
+    buildGallery('collage-bd', bySlug('bd'));
+    buildGallery('collage-theme', bySlug('theme'));
+    buildGallery('collage-denom', bySlug('denom'));
+  }
+
+  // Reveal gallery items when a collapsed group is opened
+  document.querySelectorAll('details.collage-group').forEach(d => {
+    d.addEventListener('toggle', () => {
+      if (d.open) d.querySelectorAll('.g-item').forEach(el => el.classList.add('in'));
+    });
   });
-}, { threshold: 0.05, rootMargin: '0px 0px 120px 0px' });
-document.querySelectorAll('.reveal, .g-item').forEach(el => io.observe(el));
+
+  /* ---- Scroll reveal (static content already in the DOM) ---- */
+  document.querySelectorAll('.reveal, .g-item').forEach(el => revealObserver.observe(el));
+
+  /* ---- Nav / scroll chrome ---- */
+  const navbar = document.getElementById('navbar');
+  const progress = document.getElementById('progress-bar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 40);
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = (window.scrollY / h * 100) + '%';
+  }, { passive: true });
+
+  const navToggle = document.getElementById('nav-toggle');
+  const navLinks = document.getElementById('nav-links');
+  navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+}
 
 let countersRun = false;
 function runCounters() {
@@ -415,15 +585,4 @@ function runCounters() {
   });
 }
 
-const navbar = document.getElementById('navbar');
-const progress = document.getElementById('progress-bar');
-window.addEventListener('scroll', () => {
-  navbar.classList.toggle('scrolled', window.scrollY > 40);
-  const h = document.documentElement.scrollHeight - window.innerHeight;
-  progress.style.width = (window.scrollY / h * 100) + '%';
-}, { passive: true });
-
-const navToggle = document.getElementById('nav-toggle');
-const navLinks = document.getElementById('nav-links');
-navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
-navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+boot();

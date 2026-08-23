@@ -1,0 +1,11 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Never commit these if you ever add scripts that use them
+*.env
+.env.local
+supabase/.temp/
