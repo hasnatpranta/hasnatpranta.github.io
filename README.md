@@ -14,9 +14,9 @@ dashboard for managing every section of the site without touching code.
 - **Backend:** [Supabase](https://supabase.com) — Postgres database + authentication +
   file storage + an auto-generated API, called directly from the browser.
 - **Hosting:** GitHub Pages, for both the public site and the admin dashboard.
-- **Content flow:** Dashboard → Supabase (database) → public site fetches it at page
-  load. If Supabase is ever unreachable, the site falls back to its built-in content —
-  it can never show a broken page.
+- **Content flow:** Dashboard → Supabase (database) → public pages. Each page opens
+  immediately from its built-in content, then fetches dashboard content in the
+  background, so the site never waits on the database.
 
 See [ADMIN-SETUP.md](ADMIN-SETUP.md) for the full setup walkthrough, dashboard usage
 guide, schema reference, and environment/configuration values.
@@ -40,8 +40,11 @@ index.html, gis.html, event-maps.html,        — public pages
   design.html, collection.html
 css/style.css                                  — public site styling
 js/main.js                                      — 3D globe, galleries, lightbox, CMS wiring
-js/cms-content.js, js/cms-config.js,           — CMS data-fetch layer (public site)
-  js/supabase-client.js
+js/cms-content.js                               — reads dashboard content for public pages
+js/cms-config.js                                — Supabase project URL + public key
+js/supabase-client.js                           — Supabase client, used by the dashboard only
+assets/data/world.geo.json                      — country outlines for the globe
+.github/workflows/keep-dashboard-awake.yml      — stops the free database from pausing
 admin/                                          — the admin dashboard (separate static app)
   index.html, dashboard.html
   css/admin.css

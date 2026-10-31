@@ -1,15 +1,10 @@
-import * as THREE from 'three';
-import {
-  loadProfile, loadAboutContent, loadStats, loadSkillGroups, loadHeroPins,
-  loadExperience, loadGisItems, loadFeaturedProject, loadEventMapItems,
-  loadDesignItems, loadReports, loadCollectionGroups, loadCollectionItems,
-  loadSeoMeta, applySeoMeta
-} from './cms-content.js';
+// Loaded on demand by startGlobe(), so pages paint without waiting for it.
+let THREE;
 
 /* ================================================================
-   FALLBACK DATA — used whenever the CMS has no data for a section
-   (not configured yet, empty table, or a network error). The site
-   must always render correctly even if Supabase is unreachable.
+   BUILT-IN CONTENT — what every page shows the moment it opens.
+   CMS content replaces it afterwards if the CMS can be reached, so
+   the site renders correctly even if Supabase is unavailable.
 ================================================================ */
 const defaultWorkPins = [
   { name: 'Satkhira', sub: 'GO4IMPact — MEL Coordinator (current)', lat: 22.72, lon: 89.07 },
@@ -160,9 +155,8 @@ const glow = new THREE.Mesh(
 scene.add(glow);
 
 // Land outlines (fetched; globe degrades gracefully without them)
-fetch('https://cdn.jsdelivr.net/npm/world-geojson-smaller@1.0.1/world.geo.json')
+fetch('assets/data/world.geo.json')
   .then(r => { if (!r.ok) throw 0; return r.json(); })
-  .catch(() => fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(r => r.json()))
   .then(geo => {
     const mat = new THREE.LineBasicMaterial({ color: 0x4d6488, transparent: true, opacity: 0.85 });
     const segs = [];
@@ -214,11 +208,17 @@ function makePin(lat, lon, color, size, data) {
   return g;
 }
 
-workPins.forEach(p =>
-  pinGroups.work.add(makePin(p.lat, p.lon, 0x3ec6b5, 0.016, { title: p.name, sub: p.sub })));
-noteCountries.forEach(([name, count, lat, lon]) =>
-  pinGroups.notes.add(makePin(lat, lon, 0xd4a94e, 0.010 + Math.min(count, 12) * 0.0011,
-    { title: name, sub: count + (count === 1 ? ' banknote' : ' banknotes') + ' in the collection' })));
+function setPins(work, notes) {
+  pinGroups.work.clear();
+  pinGroups.notes.clear();
+  pickables.length = 0;
+  work.forEach(p =>
+    pinGroups.work.add(makePin(p.lat, p.lon, 0x3ec6b5, 0.016, { title: p.name, sub: p.sub })));
+  notes.forEach(([name, count, lat, lon]) =>
+    pinGroups.notes.add(makePin(lat, lon, 0xd4a94e, 0.010 + Math.min(count, 12) * 0.0011,
+      { title: name, sub: count + (count === 1 ? ' banknote' : ' banknotes') + ' in the collection' })));
+}
+setPins(workPins, noteCountries);
 
 // Layer toggles
 document.querySelectorAll('.legend-btn').forEach(btn => {
@@ -325,6 +325,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+return { setPins };
 }
 
 /* ================================================================
@@ -377,7 +378,11 @@ const revealObserver = new IntersectionObserver(entries => {
 
 function buildGallery(containerId, items) {
   const el = document.getElementById(containerId);
-  if (!el || !items || !items.length) return;
+  if (!el || !items) return;
+  // Skip the rebuild when CMS content matches what's showing, so images don't reload.
+  const signature = JSON.stringify(items.map(it => [new URL(it.thumb, location.href).pathname, it.caption]));
+  if (el.dataset.signature === signature) return;
+  el.dataset.signature = signature;
   el.innerHTML = '';
   const full = items.map(it => [it.full, it.caption]);
   items.forEach((it, i) => {
@@ -397,12 +402,28 @@ function buildGallery(containerId, items) {
 }
 
 /* ================================================================
-   TEXT SECTIONS — only touch the DOM when CMS data is present;
-   otherwise the page's own static HTML (already correct) stands.
+   TEXT SECTIONS — only touch the DOM when the CMS text really differs
+   from what's showing, so visitors never see the content flicker.
 ================================================================ */
+const normalize = text => text.replace(/\s+/g, ' ').trim();
+
+const setText = (sel, val) => {
+  const el = document.querySelector(sel);
+  if (el && val && normalize(el.textContent) !== normalize(val)) el.textContent = val;
+};
+
+// Replaces wrap's contents with html unless the text is already the same.
+function swapSection(wrap, html, key = el => normalize(el.textContent)) {
+  const next = document.createElement('div');
+  next.innerHTML = html;
+  if (key(wrap) === key(next)) return false;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  return true;
+}
+
 function applyProfile(profile) {
   if (!profile) return;
-  const setText = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.textContent = val; };
   setText('.hero-kicker', profile.location);
   setText('.hero-roles', profile.headline);
   setText('.hero-tagline', profile.hero_tagline);
@@ -421,32 +442,31 @@ function applyAbout(about, stats, skillGroups) {
   if (about) {
     const paras = document.querySelectorAll('.about-text p');
     [about.paragraph_1, about.paragraph_2, about.paragraph_3].forEach((html, i) => {
-      if (html && paras[i]) paras[i].innerHTML = html;
+      if (html && paras[i]) swapSection(paras[i], html);
     });
   }
-  if (stats && stats.length) {
-    const wrap = document.querySelector('.about-stats');
-    if (wrap) {
-      wrap.innerHTML = stats.map(s => `
-        <div class="stat-card"><span class="stat-num" data-count="${s.value}">0</span><span class="stat-plus">${s.suffix || ''}</span><p>${s.label}</p></div>
-      `).join('');
-    }
+  const statsWrap = document.querySelector('.about-stats');
+  if (stats && statsWrap) {
+    // The numbers animate up from 0, so compare their targets rather than the visible text.
+    const statsKey = el => [...el.querySelectorAll('.stat-card')].map(card =>
+      [card.querySelector('.stat-num').dataset.count, card.querySelector('.stat-plus').textContent, card.querySelector('p').textContent].join('~')).join('|');
+    const changed = swapSection(statsWrap, stats.map(s => `
+      <div class="stat-card"><span class="stat-num" data-count="${s.value}">0</span><span class="stat-plus">${s.suffix || ''}</span><p>${s.label}</p></div>
+    `).join(''), statsKey);
+    if (changed && countersRun) statsWrap.querySelectorAll('.stat-num').forEach(el => { el.textContent = el.dataset.count; });
   }
-  if (skillGroups && skillGroups.length) {
-    const wrap = document.querySelector('.skills-band');
-    if (wrap) {
-      wrap.innerHTML = skillGroups.map(g => `
-        <div class="skill-group"><h4>${g.title}</h4><p>${g.items}</p></div>
-      `).join('');
-    }
+  const skillsWrap = document.querySelector('.skills-band');
+  if (skillGroups && skillsWrap) {
+    swapSection(skillsWrap, skillGroups.map(g => `
+      <div class="skill-group"><h4>${g.title}</h4><p>${g.items}</p></div>
+    `).join(''));
   }
 }
 
 function applyExperience(items) {
-  if (!items || !items.length) return;
   const wrap = document.querySelector('.timeline');
-  if (!wrap) return;
-  wrap.innerHTML = items.map(x => `
+  if (!items || !wrap) return;
+  swapSection(wrap, items.map(x => `
     <div class="timeline-item reveal">
       <div class="timeline-date">${x.date_range}</div>
       <div class="timeline-body">
@@ -455,27 +475,23 @@ function applyExperience(items) {
         <p>${x.description || ''}</p>
       </div>
     </div>
-  `).join('');
-  wrap.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  `).join(''));
 }
 
 function applyReports(items) {
-  if (!items || !items.length) return;
   const wrap = document.querySelector('.report-cards');
-  if (!wrap) return;
-  wrap.innerHTML = items.map(r => `
+  if (!items || !wrap) return;
+  swapSection(wrap, items.map(r => `
     <div class="report-card reveal">
       <h3>${r.title}</h3>
       <p>${r.description || ''}</p>
       ${r.tag ? `<span class="report-tag">${r.tag}</span>` : ''}
     </div>
-  `).join('');
-  wrap.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  `).join(''));
 }
 
 function applyFeaturedProject(fp) {
   if (!fp) return;
-  const setText = (sel, val) => { const el = document.querySelector(sel); if (el && val) el.textContent = val; };
   setText('.featured-text h3', fp.title);
   setText('.featured-loc', fp.location);
   setText('.featured-text p:not(.featured-loc):not(.featured-tools)', fp.description);
@@ -483,66 +499,68 @@ function applyFeaturedProject(fp) {
 }
 
 /* ================================================================
-   BOOT — fetch CMS content (with automatic fallback), THEN render.
-   Doing this before any reveal/observer wiring avoids animation races.
+   BOOT — the page is complete from its built-in content as soon as
+   this runs. CMS content and the globe then load in the background,
+   so neither can ever hold the page up.
 ================================================================ */
+const COLLAGE_GROUPS = ['world', 'bd', 'theme', 'denom'];
 const cmsToGalleryItem = row => ({ full: row.image_url, thumb: row.thumb_url || row.image_url, caption: row.caption || row.title });
 
-async function boot() {
-  const page = document.body.dataset.page || 'home';
+let globe = null;
+let cmsPins = null;
 
-  const [
-    profile, about, stats, skillGroups, heroPins, experienceItems,
-    gisItems, featuredProject, eventItems, designItems, reportItems,
-    collectionGroups, collectionItems, seoMeta
-  ] = await Promise.all([
-    loadProfile(), loadAboutContent(), loadStats(), loadSkillGroups(), loadHeroPins(),
-    loadExperience(), loadGisItems(), loadFeaturedProject(), loadEventMapItems(),
-    loadDesignItems(), loadReports(), loadCollectionGroups(), loadCollectionItems(),
-    loadSeoMeta(page),
-  ]);
-
-  applySeoMeta(seoMeta);
-  applyProfile(profile);
-  applyAbout(about, stats, skillGroups);
-  applyExperience(experienceItems);
-  applyReports(reportItems);
-  applyFeaturedProject(featuredProject);
-
-  // ---- Globe ----
-  if (canvas) {
-    const workPins = heroPins && heroPins.some(p => p.layer === 'work')
-      ? heroPins.filter(p => p.layer === 'work').map(p => ({ name: p.name, sub: p.sub, lat: +p.lat, lon: +p.lon }))
-      : defaultWorkPins;
-    const noteCountries = heroPins && heroPins.some(p => p.layer === 'notes')
-      ? heroPins.filter(p => p.layer === 'notes').map(p => [p.name, p.count, +p.lat, +p.lon])
-      : defaultNoteCountries;
-    initGlobe(workPins, noteCountries);
+async function startGlobe() {
+  if (!canvas) return;
+  try {
+    THREE = await import('three');
+    globe = initGlobe(cmsPins?.work ?? defaultWorkPins, cmsPins?.notes ?? defaultNoteCountries);
+  } catch (err) {
+    console.warn('[globe] unavailable; the page works without it.', err);
   }
+}
 
-  // ---- Galleries ----
-  const gisFeatured = gisItems && gisItems.length ? gisItems.filter(i => i.featured).map(cmsToGalleryItem) : defaultFeaturedGis;
-  const gisRegular = gisItems && gisItems.length ? gisItems.filter(i => !i.featured).map(cmsToGalleryItem) : defaultGisItems;
-  buildGallery('featured-gis', gisFeatured);
-  buildGallery('gis-grid', gisRegular);
+function applyPins(rows) {
+  if (!rows) return;
+  const work = rows.filter(p => p.layer === 'work').map(p => ({ name: p.name, sub: p.sub, lat: +p.lat, lon: +p.lon }));
+  const notes = rows.filter(p => p.layer === 'notes').map(p => [p.name, p.count, +p.lat, +p.lon]);
+  if (JSON.stringify([work, notes]) === JSON.stringify([defaultWorkPins, defaultNoteCountries])) return;
+  cmsPins = { work, notes };
+  globe?.setPins(work, notes);
+}
 
-  buildGallery('event-grid', eventItems && eventItems.length ? eventItems.map(cmsToGalleryItem) : defaultEventItems);
-  buildGallery('design-grid', designItems && designItems.length ? designItems.map(cmsToGalleryItem) : defaultDesignItems);
+async function upgradeFromCms() {
+  const { loadPageContent, applySeoMeta } = await import('./cms-content.js');
+  const cms = await loadPageContent(document.body.dataset.page || 'home');
+  if (!cms) return;
 
-  // Collection page: one gallery per collapsible group
-  if (document.getElementById('collage-world')) {
-    const bySlug = slug => {
-      if (collectionGroups && collectionItems) {
-        const grp = collectionGroups.find(g => g.slug === slug);
-        if (grp) return collectionItems.filter(i => i.group_id === grp.id).map(cmsToGalleryItem);
-      }
-      return defaultCollages.filter(c => c.cat === slug);
-    };
-    buildGallery('collage-world', bySlug('world'));
-    buildGallery('collage-bd', bySlug('bd'));
-    buildGallery('collage-theme', bySlug('theme'));
-    buildGallery('collage-denom', bySlug('denom'));
+  applySeoMeta(cms.seo);
+  applyProfile(cms.profile);
+  applyAbout(cms.about_content, cms.stats, cms.skill_groups);
+  applyExperience(cms.experience);
+  applyReports(cms.reports);
+  applyFeaturedProject(cms.featured_project);
+  applyPins(cms.hero_pins);
+
+  if (cms.gis_items) {
+    buildGallery('featured-gis', cms.gis_items.filter(i => i.featured).map(cmsToGalleryItem));
+    buildGallery('gis-grid', cms.gis_items.filter(i => !i.featured).map(cmsToGalleryItem));
   }
+  if (cms.event_map_items) buildGallery('event-grid', cms.event_map_items.map(cmsToGalleryItem));
+  if (cms.design_items) buildGallery('design-grid', cms.design_items.map(cmsToGalleryItem));
+  if (cms.collection_groups && cms.collection_items) {
+    COLLAGE_GROUPS.forEach(slug => {
+      const group = cms.collection_groups.find(g => g.slug === slug);
+      buildGallery(`collage-${slug}`, cms.collection_items.filter(i => i.group_id === group?.id).map(cmsToGalleryItem));
+    });
+  }
+}
+
+function boot() {
+  buildGallery('featured-gis', defaultFeaturedGis);
+  buildGallery('gis-grid', defaultGisItems);
+  buildGallery('event-grid', defaultEventItems);
+  buildGallery('design-grid', defaultDesignItems);
+  COLLAGE_GROUPS.forEach(slug => buildGallery(`collage-${slug}`, defaultCollages.filter(c => c.cat === slug)));
 
   // Reveal gallery items when a collapsed group is opened
   document.querySelectorAll('details.collage-group').forEach(d => {
@@ -552,7 +570,7 @@ async function boot() {
   });
 
   /* ---- Scroll reveal (static content already in the DOM) ---- */
-  document.querySelectorAll('.reveal, .g-item').forEach(el => revealObserver.observe(el));
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 
   /* ---- Nav / scroll chrome ---- */
   const navbar = document.getElementById('navbar');
@@ -567,6 +585,15 @@ async function boot() {
   const navLinks = document.getElementById('nav-links');
   navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
   navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => navLinks.classList.remove('open')));
+
+  /* ---- Background upgrades ---- */
+  upgradeFromCms().catch(err => console.warn('[cms] unavailable, using built-in content.', err));
+  // Let the page settle before the 3D library starts downloading.
+  const whenIdle = () => (window.requestIdleCallback
+    ? requestIdleCallback(startGlobe, { timeout: 1500 })
+    : setTimeout(startGlobe, 200));
+  if (document.readyState === 'complete') whenIdle();
+  else window.addEventListener('load', whenIdle, { once: true });
 }
 
 let countersRun = false;

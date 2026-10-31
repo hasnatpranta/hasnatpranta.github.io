@@ -13,9 +13,9 @@ public portfolio and the admin dashboard remain **plain static files on GitHub P
 they talk to Supabase directly from the browser using its JavaScript SDK. There is no
 server to run, no Node build step, and no separate hosting bill. Security is enforced
 in the database itself via Row Level Security (RLS): anyone can *read* published
-content, but only a signed-in admin can *write*. The public site always falls back to
-its built-in content if Supabase is ever unreachable, so a CMS outage can never break
-the live portfolio.
+content, but only the one admin account can *write*. Public pages open immediately from
+their built-in content and fetch dashboard content in the background, so a slow or
+paused database can never hold the live portfolio up.
 
 ## One-time setup (about 10 minutes)
 
@@ -37,12 +37,15 @@ instead of empty.
 
 ### 4. Lock the project to a single admin
 **Authentication → Providers → Email** → turn **off** "Allow new users to sign up."
-This is what stops anyone else from ever creating a login.
+This stops anyone else from creating a login. Even if it is left on, a stranger's
+account still can't change anything: writes are limited to one confirmed email address
+in the `private.is_admin()` function in `supabase/schema.sql`. To use a different admin
+email, change it there and in the database.
 
 ### 5. Create your admin account
-**Authentication → Users → Add user**. Enter your email and choose a password —
-directly in Supabase's own screen, not anywhere in this codebase or in any AI
-conversation. This is the only account that will ever be able to sign in to `/admin/`.
+**Authentication → Users → Add user**. Use the admin email above, tick **Auto Confirm**,
+and choose a password — directly in Supabase's own screen, not anywhere in this codebase
+or in any AI conversation.
 
 ### 6. Connect the site to your project
 **Project Settings → API**. Copy two values:
@@ -112,8 +115,9 @@ this project — don't paste them into any file here.
 ## API structure
 
 There's no hand-written API — Supabase auto-generates a REST API over every table
-(PostgREST). The dashboard and site call it through the `@supabase/supabase-js`
-client library (loaded from a CDN, no install needed):
+(PostgREST). Public pages only read, using plain `fetch` (`js/cms-content.js`). The
+dashboard calls it through the `@supabase/supabase-js` client library (loaded from a
+CDN, no install needed):
 
 - `supabase.from('table').select('*')` — read
 - `supabase.from('table').insert(...)` / `.update(...)` / `.delete()` — write, only
@@ -129,10 +133,18 @@ content. Tables: `profile`, `about_content`, `stats`, `skill_groups`, `hero_pins
 `experience`, `gis_items`, `featured_project`, `event_map_items`, `design_items`,
 `reports`, `collection_groups`, `collection_items`, `seo_meta`.
 
+## Keeping the database awake
+
+Supabase pauses free projects after about a week without activity. The
+`Keep dashboard database awake` GitHub Action pings it twice a week so that doesn't
+happen. If a ping fails, GitHub emails you; the public site keeps working either way.
+
 ## Troubleshooting
 
 - **Dashboard shows "not configured yet"** — `js/cms-config.js` still has empty
   values; do step 6 above.
+- **Dashboard can't log in or save, but the public site is fine** — the project may be
+  paused. Open it in the Supabase dashboard and click **Restore**.
 - **Login fails** — the admin user must be created in the Supabase dashboard (step 5);
   the dashboard has no self-registration.
 - **A new item doesn't show on the site** — check its **Published** toggle is on.

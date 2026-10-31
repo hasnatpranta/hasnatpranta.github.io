@@ -175,7 +175,7 @@ on conflict (page_slug) do nothing;
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- Public (anon) can read published rows.
--- Only a signed-in user (your one admin account) can write.
+-- Only the one admin account (see private.is_admin below) can write.
 -- ============================================================
 
 alter table profile enable row level security;
@@ -193,7 +193,30 @@ alter table collection_groups enable row level security;
 alter table collection_items enable row level security;
 alter table seo_meta enable row level security;
 
--- Singleton / always-readable tables: public read, authenticated write
+-- Only this confirmed account may write. Being signed in is not enough: if public
+-- sign-ups are ever left on, a stranger's account must still be unable to edit anything.
+create schema if not exists private;
+grant usage on schema private to anon, authenticated;
+
+create or replace function private.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1 from auth.users u
+    where u.id = auth.uid()
+      and u.email = 'hasnatpranta@gmail.com'
+      and u.email_confirmed_at is not null
+  );
+$$;
+
+revoke all on function private.is_admin() from public;
+grant execute on function private.is_admin() to anon, authenticated;
+
+-- Singleton / always-readable tables: public read, admin write
 do $$
 declare t text;
 begin
@@ -201,7 +224,7 @@ begin
     execute format('drop policy if exists "public read %I" on %I', t, t);
     execute format('create policy "public read %I" on %I for select using (true)', t, t);
     execute format('drop policy if exists "admin write %I" on %I', t, t);
-    execute format('create policy "admin write %I" on %I for all using (auth.role() = ''authenticated'') with check (auth.role() = ''authenticated'')', t, t);
+    execute format('create policy "admin write %I" on %I for all using (private.is_admin()) with check (private.is_admin())', t, t);
   end loop;
 end $$;
 
@@ -211,9 +234,9 @@ declare t text;
 begin
   foreach t in array array['hero_pins','stats','skill_groups','experience','gis_items','event_map_items','design_items','reports','collection_groups','collection_items'] loop
     execute format('drop policy if exists "public read published %I" on %I', t, t);
-    execute format('create policy "public read published %I" on %I for select using (published = true or auth.role() = ''authenticated'')', t, t);
+    execute format('create policy "public read published %I" on %I for select using (published = true or private.is_admin())', t, t);
     execute format('drop policy if exists "admin write %I" on %I', t, t);
-    execute format('create policy "admin write %I" on %I for all using (auth.role() = ''authenticated'') with check (auth.role() = ''authenticated'')', t, t);
+    execute format('create policy "admin write %I" on %I for all using (private.is_admin()) with check (private.is_admin())', t, t);
   end loop;
 end $$;
 
@@ -230,15 +253,15 @@ create policy "public read media" on storage.objects
 
 drop policy if exists "admin upload media" on storage.objects;
 create policy "admin upload media" on storage.objects
-  for insert with check (bucket_id = 'media' and auth.role() = 'authenticated');
+  for insert with check (bucket_id = 'media' and private.is_admin());
 
 drop policy if exists "admin update media" on storage.objects;
 create policy "admin update media" on storage.objects
-  for update using (bucket_id = 'media' and auth.role() = 'authenticated');
+  for update using (bucket_id = 'media' and private.is_admin());
 
 drop policy if exists "admin delete media" on storage.objects;
 create policy "admin delete media" on storage.objects
-  for delete using (bucket_id = 'media' and auth.role() = 'authenticated');
+  for delete using (bucket_id = 'media' and private.is_admin());
 
 -- ============================================================
 -- Done. Next steps (in the Supabase dashboard):

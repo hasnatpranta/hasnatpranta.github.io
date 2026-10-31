@@ -1,0 +1,38 @@
+name: Keep dashboard database awake
+
+# Supabase pauses a free project after about a week without activity. When it is
+# paused, the dashboard can't log in or save. This pings it twice a week. If a ping
+# fails, the run fails and GitHub emails the repository owner.
+on:
+  schedule:
+    - cron: '17 4 * * 1,4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ping the database
+        run: |
+          url=$(grep -o 'https://[^"]*supabase\.co' js/cms-config.js)
+          key=$(grep -o 'eyJ[^"]*' js/cms-config.js)
+          curl --fail --silent --show-error --max-time 30 -o /dev/null \
+            --retry 3 --retry-delay 20 \
+            "$url/rest/v1/seo_meta?select=page_slug&limit=1" \
+            -H "apikey: $key" -H "Authorization: Bearer $key"
+
+      # GitHub switches off scheduled workflows after 60 days without a commit.
+      - name: Keep this schedule switched on
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt $(( 45 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Keep the scheduled database check switched on"
+            git push
+          fi

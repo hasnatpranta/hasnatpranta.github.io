@@ -1,46 +1,41 @@
-import { supabase, cmsEnabled } from './supabase-client.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './cms-config.js';
 
-// Every loader resolves to null on any failure (no config, network error,
-// empty table) so callers can fall back to the site's built-in defaults.
-// The public site must never break because the CMS is unreachable.
-async function safeSelect(table, { order, single } = {}) {
-  if (!cmsEnabled) return null;
-  try {
-    let q = supabase.from(table).select('*');
-    if (order) q = q.order(order, { ascending: true });
-    const { data, error } = single ? await q.maybeSingle() : await q;
-    if (error) throw error;
-    if (!data || (Array.isArray(data) && data.length === 0)) return null;
-    return data;
-  } catch (err) {
-    console.warn(`[cms] ${table} unavailable, using built-in content.`, err);
-    return null;
-  }
+// The public site only ever reads, so it uses plain fetch against the REST API
+// rather than downloading the Supabase client. One quick request goes first: if
+// the database is paused or unreachable, the page just keeps its built-in content.
+const TIMEOUT_MS = 4000;
+const SINGLE_ROW = new Set(['profile', 'about_content', 'featured_project']);
+const TABLES_BY_PAGE = {
+  home: ['profile', 'about_content', 'stats', 'skill_groups', 'hero_pins', 'experience', 'reports'],
+  gis: ['featured_project', 'gis_items'],
+  'event-maps': ['event_map_items'],
+  design: ['design_items'],
+  collection: ['collection_groups', 'collection_items'],
+};
+
+async function fetchRows(table, query) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*${query}`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`${table}: HTTP ${res.status}`);
+  return res.json();
 }
 
-export const loadProfile = () => safeSelect('profile', { single: true });
-export const loadAboutContent = () => safeSelect('about_content', { single: true });
-export const loadStats = () => safeSelect('stats', { order: 'order_index' });
-export const loadSkillGroups = () => safeSelect('skill_groups', { order: 'order_index' });
-export const loadHeroPins = () => safeSelect('hero_pins', { order: 'order_index' });
-export const loadExperience = () => safeSelect('experience', { order: 'order_index' });
-export const loadGisItems = () => safeSelect('gis_items', { order: 'order_index' });
-export const loadFeaturedProject = () => safeSelect('featured_project', { single: true });
-export const loadEventMapItems = () => safeSelect('event_map_items', { order: 'order_index' });
-export const loadDesignItems = () => safeSelect('design_items', { order: 'order_index' });
-export const loadReports = () => safeSelect('reports', { order: 'order_index' });
-export const loadCollectionGroups = () => safeSelect('collection_groups', { order: 'order_index' });
-export const loadCollectionItems = () => safeSelect('collection_items', { order: 'order_index' });
-export const loadSocialLinks = () => safeSelect('social_links', { order: 'order_index' });
+const readTable = async table => (SINGLE_ROW.has(table)
+  ? (await fetchRows(table, ''))[0] ?? null
+  : fetchRows(table, '&order=order_index.asc'));
 
-export async function loadSeoMeta(pageSlug) {
-  if (!cmsEnabled) return null;
+// Resolves to { seo, <table>: rows, ... }, or null if the CMS can't be reached.
+export async function loadPageContent(page) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   try {
-    const { data, error } = await supabase.from('seo_meta').select('*').eq('page_slug', pageSlug).maybeSingle();
-    if (error || !data || (!data.title && !data.description)) return null;
-    return data;
+    const [seo] = await fetchRows('seo_meta', `&page_slug=eq.${encodeURIComponent(page)}`);
+    const tables = TABLES_BY_PAGE[page] || [];
+    const rows = await Promise.all(tables.map(readTable));
+    return Object.fromEntries([['seo', seo ?? null], ...tables.map((t, i) => [t, rows[i]])]);
   } catch (err) {
-    console.warn('[cms] seo_meta unavailable, using built-in tags.', err);
+    console.warn('[cms] unavailable, using built-in content.', err);
     return null;
   }
 }
